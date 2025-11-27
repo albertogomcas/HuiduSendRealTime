@@ -26,6 +26,10 @@ from udp_socket import UDPSocket
 DISPLAY_WIDTH = 160
 DISPLAY_HEIGHT = 32
 
+# Packet offsets
+PACKET2_IMAGE_OFFSET = 0x54  # Image data starts at byte 84 in packet 2
+PACKET3_IMAGE_OFFSET = 0x20  # Image data starts at byte 32 in packet 3
+
 
 def calculate_checksum(packet: bytearray) -> int:
     """Calculate checksum for a packet.
@@ -143,10 +147,10 @@ async def send_mat(mat: np.ndarray, controller_ip: str = "192.168.4.1",
     paquete2[0x1c] = id1
     paquete2[0x1d] = id2
 
-    # Image starts at 0x54, count 640 bytes from the image buffer
-    buf = len(paquete2) - 3 - 0x54  # 940 bytes
+    # Image starts at PACKET2_IMAGE_OFFSET, copy image bytes into packet
+    buf = len(paquete2) - 3 - PACKET2_IMAGE_OFFSET  # 940 bytes
     for i in range(buf):
-        paquete2[0x54 + i] = img[i]
+        paquete2[PACKET2_IMAGE_OFFSET + i] = img[i]
 
     cksum = calculate_checksum(paquete2[:-3])
     paquete2[-2] = cksum & 0xFF
@@ -164,9 +168,9 @@ async def send_mat(mat: np.ndarray, controller_ip: str = "192.168.4.1",
     paquete3[0x1c] = id1
     paquete3[0x1d] = id2
 
-    buf2 = len(paquete3) - 3 - 0x20  # 980 bytes
+    buf2 = len(paquete3) - 3 - PACKET3_IMAGE_OFFSET  # 980 bytes
     for i in range(buf2):
-        paquete3[0x20 + i] = img[buf + i]
+        paquete3[PACKET3_IMAGE_OFFSET + i] = img[buf + i]
 
     cksum = calculate_checksum(paquete3[:-3])
     paquete3[-2] = cksum & 0xFF
